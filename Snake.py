@@ -58,10 +58,21 @@ class Snake():
                 self.statusMove = Snake.down
 
     def update(self,events):
-        '''Update the snake with the key events and return what is the state for the snake'''
+        '''Update the snake with the key events and return what is the state for the snake, eating, moving or dying'''
 
         self.__changeStatusMove(events)
 
+        return self.__Move()
+
+    def updateIA(self,node):
+        '''Update the snake to the node and return what is the state for the snake, eating, moving or dying'''
+
+        self.__changeStatusMoveIA(node)
+
+        return self.__Move()
+
+    def __Move(self):
+        '''Move the snake body in the matriz and return his new status, eating,moving or dying'''
         #crea una nueva cabeza
         node = self.__newHead()
 
@@ -87,9 +98,23 @@ class Snake():
             #crea una nueva comida
             self.__newFood()
 
-
         #always return the status of the snake, eating, moving or dead
         return self.status
+
+    def __changeStatusMoveIA(self,node):
+        '''move the snake to node'''
+
+        #si la cabeza esta mas a la derecha que el nodo a moverme, me muevo a la izquierda
+        if self.head.col > node.col:   self.statusMove = Snake.left
+        
+        #si la cabeza esta mas a la izquierda que el nodo, me muevo a la derecha
+        elif self.head.col < node.col:  self.statusMove = Snake.right
+
+        #si estoy mas abajo que el nodo, me muevo hacia arriba
+        elif self.head.row > node.row:    self.statusMove = Snake.up
+
+        #si la cabeza esta mas arriba que el nodo, me muevo hacia abajo
+        elif self.head.row < node.row:   self.statusMove = Snake.down
 
     def drawBody(self):
         '''only draw the snake body'''
