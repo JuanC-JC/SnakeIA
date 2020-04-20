@@ -6,9 +6,9 @@ import queue
 #averiguar en que direccion va la serpiente y no tomar ese nodo para evaluar..
 
 class pathFinder():
-
+    '''Objeto buscador de rutas, recibe una matriz "grid" y una serpiente'''
     def __init__(self,grid,snake):
-
+        
         #capto el grid
         self.grid = grid
 
@@ -98,7 +98,7 @@ class pathFinder():
     def __updateUnvisitedNeighbors(self,node):
 
         #obtener primero los nodos sin visitar
-        unvisitedNeighbors = self.getUnvisitedNeighbors(node)
+        unvisitedNeighbors = self.__getUnvisitedNeighbors(node)
 
         for neighbor in unvisitedNeighbors:
             neighbor.distance = node.distance +1
@@ -115,7 +115,7 @@ class pathFinder():
                      self.UnvisitedNodes.put(neighbor)
 
 
-    def getUnvisitedNeighbors(self,node):
+    def __getUnvisitedNeighbors(self,node):
 
         #pensar si es lo mismo aca bloquear los nodos "wall" osea eliminarnos de la lista desde aca o ñe
         neighbors =[]
