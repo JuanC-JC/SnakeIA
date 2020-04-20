@@ -120,15 +120,6 @@ class Snake():
     def drawBody(self):
         '''only draw the snake body'''
 
-        # for node in self.body:
-
-        #     if node == self.head: self.__game.drawNode(node,(4, 182, 101))
-
-        #     elif node == self.body[len(self.body)-1]: 
-                     
-        #         self.__game.drawNode(node,(60, 141, 188))
-
-        #     else: self.__game.drawNode(node,(0, 166, 90))
 
         sizeSquare = self.__game.sizeSquare
 
@@ -176,7 +167,6 @@ class Snake():
                     newY = second.row * sizeSquare + (sizeSquare*0.9)
 
                     pygame.draw.rect(self.__game.window,(4,182,101),(newX,newY, sizeSquare*0.8, sizeSquare * 0.2))
-
 
     def drawFood(self):
         '''only draw the food'''

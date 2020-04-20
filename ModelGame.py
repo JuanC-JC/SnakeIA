@@ -98,6 +98,7 @@ class Game():
                 self.run = False
 
 
+
             #permite cambiar el modo de juego
             if pygame.K_SPACE in [event.key for event in events if event.type == pygame.KEYUP]:
 
