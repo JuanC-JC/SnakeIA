@@ -18,6 +18,8 @@ class Game():
 
     AnimationNone = 3
 
+    AnimationWining = 4
+
     #iterando la serpiente por un camino hasta la comida
     foodPath = 3
 
@@ -29,6 +31,10 @@ class Game():
 
     #no esta haciendo nada, a espera
     Waiting = 6
+
+    #wining
+    Win = 7
+
 
 
     #inicializar el juego, crear todo
@@ -56,7 +62,7 @@ class Game():
 
         self.run = True
 
-        self.FPS = 10
+        self.FPS = 5
 
         self.mode = Game.manually
 
@@ -67,6 +73,8 @@ class Game():
         self.PathFinder = pathFinder(self.grid,self.snake)
 
         self.shortPath = []
+
+        self.longPath = []
 
         self.visitInOrder = []
 
@@ -142,8 +150,21 @@ class Game():
     
     def drawNode(self,nodo,color):
 
-        pygame.draw.rect(self.window,color,(nodo.col*self.sizeSquare,nodo.row*self.sizeSquare, self.sizeSquare,self.sizeSquare))
-    
+        newSize = self.sizeSquare * 0.8
+
+        suma = self.sizeSquare * 0.1
+
+        newPosx = (nodo.col * self.sizeSquare) + suma
+
+        newPosy = (nodo.row * self.sizeSquare) + suma
+
+        # pygame.draw.rect(self.window,color,(nodo.col*self.sizeSquare,nodo.row*self.sizeSquare, self.sizeSquare,self.sizeSquare))
+        pygame.draw.rect(self.window,color,(newPosx,newPosy, newSize , newSize))
+
+
+    def drawNodeLine(self,nodo,color):
+        pygame.draw.line(self.window,(x,y,grosor))
+
     def drawBackground(self,color):
 
         pygame.draw.rect(self.window,color,(0,0,self.width,self.height))
@@ -160,73 +181,204 @@ class Game():
 
     def update(self):
 
+        #si no he ganado
+        if self.statusSearch != Game.Win:
 
-        #siempre crea la busqueda
+            #generar una ruta corta si no me encuentro ya en una ruta hasta la comida, osea o esta esperando o esta en una ruta larga
+            if self.statusSearch != Game.foodPath:
+                values = self.PathFinder.dijkstra(self.snake.head,self.snake.food)
 
-        #generar una ruta corta si no me encuentro ya en una ruta hasta la comida, osea o esta esperando o esta en una ruta larga
-        if self.statusSearch != Game.foodPath:
-            values = self.PathFinder.dijkstra(self.snake.head,self.snake.food)
+                #si encuentro la ruta corta
+                if values[0]:
 
-            #si encuentro la ruta corta
-            if values[0]:
+                    #crear una serpiente fake y moverla hasta la comida 
+                    snakeCopy = self.snake.copy()
 
-                self.shortPath = values[1]
+                    shortpathCopy = values[1][1:].copy()
 
-                #elimino la cabeza y la comida del orden de visita para que no los dibuje 
-                self.visitInOrder = values[2][1:-1]
+                    #mueve la serpiente
+                    while len(shortpathCopy) >0:
+                    
+                        #si el gana no necesito nada mas del algoritmo
+                        snakeCopy.updateIA(shortpathCopy.pop(0))
 
-                self.statusSearch = Game.foodPath
+                    #si el gana no necesito nada mas del algoritmo
+                    if snakeCopy.status == Snake.wining:
 
-                self.statusAnimation = Game.AnimationDijkstraSearch
+                        #ruta corta sin cabeza
+                        self.shortPath = values[1][1:]
 
-            #     snakeCopy = self.snake.copy()
+                        #elimino la cabeza y la comida del orden de visita para que no los dibuje 
+                        self.visitInOrder = values[2][1:-1]
 
-        #si ya me encuentro en una ruta hasta la comida
-        else:
+                        self.statusSearch = Game.foodPath
+
+                        self.statusAnimation = Game.AnimationDijkstraSearch
+
+                    #si no gano con esa ruta corta, debo seguir con el algoritmo
+                    else:
+                        #luego averiguar si existe una ruta corta hasta la cola
+                        pathFinderFake = pathFinder(self.grid,snakeCopy)
+                        
+                        valuesFake = pathFinderFake.dijkstra(snakeCopy.head, snakeCopy.body[len(snakeCopy.body)-1])
+
+                        #si existe esa ruta hasta la cola
+                        if valuesFake[0]:
+                            
+                            #ruta corta sin cabeza
+                            self.shortPath = values[1][1:]
+
+                            #elimino la cabeza y la comida del orden de visita para que no los dibuje 
+                            self.visitInOrder = values[2][1:-1]
+
+                            self.statusSearch = Game.foodPath
+
+                            self.statusAnimation = Game.AnimationDijkstraSearch
+
+                        #si no encuentra camino hasta la cola con la serpiente fake
+                        else:
+                            
+                            #me encuentro en un camino largo?
+                            if self.statusSearch == Game.tailPath:
+
+                                if len(self.shortPath) >0:
+                                    node = self.shortPath.pop(0)
+                                    self.snake.updateIA(node)
+                                else:
+                                    self.statusSearch = Game.Waiting
+
+
+                            #hacer un camino hasta la cola pero con la serpiente original antes de morir
+                            elif self.statusSearch == Game.Waiting:
+
+                                #genero la ruta hasta la cola desde la serpiente original
+                                values = self.PathFinder.dijkstra(self.snake.head,self.snake.body[len(self.snake.body)-1])
+                                                    #si encontro el camino hasta la cola
+                                if values[0]:
+
+                                    longPath = self.PathFinder.ExtendRute(values[1])
+                                
+                                    #ruta larga sin cabeza ni cola, asi evito morir ya que no puedo moverme hasta la cola
+                                    self.shortPath = longPath[1:]
+
+                                    self.statusSearch = Game.tailPath
+
+                                    # #dibuja cuando es camino hacia la cola
+                                    if self.statusSearch == Game.tailPath:
+                                        for node in range(len(longPath)):
+                                            
+
+                                            first = longPath[node]
+                                            firstx = first.col * self.sizeSquare + (self.sizeSquare//2)
+                                            firsty = first.row * self.sizeSquare + (self.sizeSquare//2)
+
+
+                                            if node < len(longPath)-1:
+                                                second = longPath[node+1]
+                                                secondx = second.col * self.sizeSquare + (self.sizeSquare//2)
+                                                secondy = second.row * self.sizeSquare + (self.sizeSquare//2)
+
+                                                pygame.draw.line(self.window,(243, 156, 18),(firstx,firsty),(secondx,secondy),1)
+
+
+                                        pygame.display.update()
+
+                                    #animo la serpiente hasta la cola
+                                    self.statusAnimation = Game.AnimationSnake
+
+                                    print("encontre un camino a la comida pero no me sirve as iq ue me voy por un camino hasta la cola")
+
+                                else:
+                                    print("morire")
+                                    
+
                 
-            if self.statusAnimation == Game.AnimationSnake:
-                #nodo a moverme
+                #si no encuentra la primer ruta corta
+                else: 
+                    
+                    if self.statusSearch == Game.tailPath:
+                        if len(self.shortPath) >0:
+                            node = self.shortPath.pop(0)
+                            self.snake.updateIA(node)
 
-                node = self.shortPath.pop(0)
-
-                #si esta comiendo
-                if self.snake.updateIA(node) == Snake.eating:
-                    self.statusSearch = Game.Waiting
-                    self.statusAnimation = Game.AnimationNone
+                        else:
+                            self.statusSearch = Game.Waiting
 
 
+                    #si no me encuentro en un camino largo, osea acabe de comer, waiting
+                    elif self.statusSearch == Game.Waiting:
 
+                        #genero la ruta hasta la cola desde la serpiente original
+                        values = self.PathFinder.dijkstra(self.snake.head,self.snake.body[len(self.snake.body)-1])
+
+                        #si encontro el camino hasta la cola
+                        if values[0]:
+
+                            longPath = self.PathFinder.ExtendRute(values[1])
+                        
+                            #ruta larga sin cabeza ni cola, asi evito morir ya que no puedo moverme hasta la cola
+                            self.shortPath = longPath[1:]
+
+                            self.statusSearch = Game.tailPath
+
+                            # #dibuja cuando es camino hacia la cola
+                            if self.statusSearch == Game.tailPath:
+                                for node in range(len(longPath)):
+                                    
+
+                                    first = longPath[node]
+                                    firstx = first.col * self.sizeSquare + (self.sizeSquare//2)
+                                    firsty = first.row * self.sizeSquare + (self.sizeSquare//2)
+
+
+                                    if node < len(longPath)-1:
+                                        second = longPath[node+1]
+                                        secondx = second.col * self.sizeSquare + (self.sizeSquare//2)
+                                        secondy = second.row * self.sizeSquare + (self.sizeSquare//2)
+
+                                        pygame.draw.line(self.window,(243, 156, 18),(firstx,firsty),(secondx,secondy),1)
+
+
+                                pygame.display.update()
+
+                            #animo la serpiente hasta la cola
+                            self.statusAnimation = Game.AnimationSnake
+
+                            print("no encontre ruta a comida, voy hasta la cola")
+
+                        else:
+                            print("")
+
+
+            #si ya me encuentro en una ruta hasta la comida
+            else:
                 
-                #crear una serpiente fake y moverla hasta la comida
+                #si estoy animando la serpiente debo evaluar esto 
+                if self.statusAnimation == Game.AnimationSnake:
+                    #nodo a moverme
 
-                #luego averiguar si existe una ruta corta hasta la cola
+                    node = self.shortPath.pop(0)
 
-                    #si no encuentra camino hasta la cola con la serpiente fake
+                    #si esta comiendo
+                    self.snake.updateIA(node) 
 
-                        #si me encuentro ya en un camino largo
-                            #seguir en el
+                    if self.snake.status == Snake.eating:
+                        self.statusSearch = Game.Waiting
+                        self.statusAnimation = Game.AnimationNone
 
-                        #si no me encuentro en un camino largo
-                            #generar el camino mas largo desde la serpiente original hasta la cola
+                    elif self.snake.status == Snake.wining:
+                        self.statusAnimation = Game.AnimationWining
+                        self.statusSearch = Game.Win
 
-                
+                    else: 
+                        self.statusAnimation = Game.AnimationSnake
 
-        #si no existe ruta corta
-
-                #si me encuentro ya en un camino largo
-                    #seguir en el
-
-                #si no me encuentro en un camino largo
-                    #generar el camino mas largo desde la serpiente original hasta la cola
-
-        
 
         #SOLO DIBUJO
 
-
         #si esta animando la busqueda dijkstra y el estatus de busqueda es hacia la comida o hacia la cola
         if self.statusAnimation == Game.AnimationDijkstraSearch:
-
+            self.FPS = 100
             #no necesito renderizar de nuevo todo, solo dibujar la busqueda encima de lo que exista
             
             #dibujar si el search es para la busqueda ha la comida
@@ -246,16 +398,37 @@ class Game():
 
                 #dibujo el grid encima de todo
                 self.drawGrid((160,160,160))
-        
+
         #dibujar la serpiente
         elif self.statusAnimation == Game.AnimationSnake:
-            
+            self.FPS = 40
             #dibujar el fondo
             self.drawBackground((64, 62, 65))
 
-            #dibujar la ruta corta, si no existe no hay problema
-            for node in self.shortPath:
-                self.drawNode(node,(243, 156, 18))
+
+            #dibuja cuando es camino a comida
+            if self.statusSearch == Game.foodPath:
+                #dibujar la ruta corta, si no existe no hay problema
+                for node in self.shortPath:
+                    self.drawNode(node,(243, 156, 18))
+
+            #dibuja cuando es camino hacia la cola
+            elif self.statusSearch == Game.tailPath:
+
+                for node in range(len(self.shortPath)):
+                    
+
+                    first = self.shortPath[node]
+                    firstx = first.col * self.sizeSquare + (self.sizeSquare//2)
+                    firsty = first.row * self.sizeSquare + (self.sizeSquare//2)
+
+
+                    if node < len(self.shortPath)-1:
+                        second = self.shortPath[node+1]
+                        secondx = second.col * self.sizeSquare + (self.sizeSquare//2)
+                        secondy = second.row * self.sizeSquare + (self.sizeSquare//2)
+
+                        pygame.draw.line(self.window,(243, 156, 18),(firstx,firsty),(secondx,secondy),1)
 
             #dibujar la serpiente
             self.snake.drawBody()
@@ -266,7 +439,7 @@ class Game():
         
         #dibuja la serpiente sin ruta corta
         elif self.statusAnimation == Game.AnimationNone:
-
+            self.FPS = 40
             #dibujar el fondo
             self.drawBackground((64, 62, 65))
 
@@ -276,9 +449,22 @@ class Game():
 
             #dibujar las lineas
             self.drawGrid((160,160,160))
+        
+        elif self.statusAnimation == Game.AnimationWining:
+            self.FPS = 10
+            #dibujar el fondo
+            self.drawBackground((64, 62, 65))
 
+            #dibujar la serpiente
+            self.snake.drawBody()
+
+            #dibujar las lineas
+            self.drawGrid((160,160,160))
+
+            print("GANADORRRRR OE OE OE OE ")
+            
 if __name__ == "__main__":
     
-    juego = Game(15,15,30)
+    juego = Game(10,10,40)
 
     juego.controlador()

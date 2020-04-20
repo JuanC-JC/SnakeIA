@@ -14,6 +14,7 @@ class Snake():
     moving = 0
     eating = 1
     dead = 2
+    wining = 3
 
     def __init__(self,rows,columns,game = None):
 
@@ -119,13 +120,63 @@ class Snake():
     def drawBody(self):
         '''only draw the snake body'''
 
-        for node in self.body:
+        # for node in self.body:
 
-            if node == self.head: self.__game.drawNode(node,(4, 182, 101))
+        #     if node == self.head: self.__game.drawNode(node,(4, 182, 101))
 
-            elif node == self.body[len(self.body)-1]: self.__game.drawNode(node,(60, 141, 188))
+        #     elif node == self.body[len(self.body)-1]: 
+                     
+        #         self.__game.drawNode(node,(60, 141, 188))
 
-            else: self.__game.drawNode(node,(0, 166, 90))
+        #     else: self.__game.drawNode(node,(0, 166, 90))
+
+        sizeSquare = self.__game.sizeSquare
+
+        for node in range(len(self.body)):
+            self.__game.drawNode(self.body[node],(4, 182, 101))
+
+
+            #una vez dibujado el primero debo calcular hacia donde dibujar el compañero
+            if len(self.body) > 1 and node < len(self.body)-1:
+
+                second = self.body[node+1]
+
+                sig = self.__nextNeighborh(self.body[node],second)
+
+                if sig == Snake.left:
+
+
+                    newX = second.col * sizeSquare + (sizeSquare*0.9)
+
+                    newY = second.row * sizeSquare + (sizeSquare*0.1)
+
+                    pygame.draw.rect(self.__game.window,(4,182,101),(newX,newY, sizeSquare*0.2, sizeSquare * 0.8))
+
+                elif sig == Snake.right:
+
+                    newX = second.col * sizeSquare - (sizeSquare*0.1)
+
+                    newY = second.row * sizeSquare + (sizeSquare*0.1)
+
+                    pygame.draw.rect(self.__game.window,(4,182,101),(newX,newY, sizeSquare*0.2, sizeSquare * 0.8))
+
+
+                elif sig == Snake.down:
+
+                    newX = second.col * sizeSquare + (sizeSquare*0.1)
+
+                    newY = second.row * sizeSquare - (sizeSquare*0.1)
+
+                    pygame.draw.rect(self.__game.window,(4,182,101),(newX,newY, sizeSquare*0.8, sizeSquare * 0.2))
+
+                elif sig == Snake.up:
+
+                    newX = second.col * sizeSquare + (sizeSquare*0.1)
+
+                    newY = second.row * sizeSquare + (sizeSquare*0.9)
+
+                    pygame.draw.rect(self.__game.window,(4,182,101),(newX,newY, sizeSquare*0.8, sizeSquare * 0.2))
+
 
     def drawFood(self):
         '''only draw the food'''
@@ -183,18 +234,27 @@ class Snake():
     def __newFood(self):
         '''asign a new food for the snake'''
 
+        if self.status != Snake.wining:
         #crea un nuevo nuevo
-        node =  Node(random.randint(0,self.columns-1),random.randint(0,self.rows-1))
-        
-        coordenadasBody = [(node.row,node.col) for node in self.body]
-
-        #si el nodo creado esta en el cuerpo, repetir hasta encontrar uno que no este en el cuerpo.
-        while (node.row,node.col) in coordenadasBody:
-            
             node =  Node(random.randint(0,self.columns-1),random.randint(0,self.rows-1))
+            
+            coordenadasBody = [(node.row,node.col) for node in self.body]
 
-        #asigno el nodo como nueva comida
-        self.food = node
+            #si el nodo creado esta en el cuerpo, repetir hasta encontrar uno que no este en el cuerpo.
+            count = 0
+            while (node.row,node.col) in coordenadasBody:
+                if count == 1000:
+                    self.status = Snake.wining
+                    break
+                node =  Node(random.randint(0,self.columns-1),random.randint(0,self.rows-1))
+                count += 1
+
+            #asigno el nodo como nueva comida
+
+            if self.status == Snake.wining:
+                print("gano mi prro")
+            else:
+                self.food = node
 
     def __isInBody(self,row,col):
         '''Return true if the new head is touching the body'''
@@ -219,16 +279,31 @@ class Snake():
 
         snakeCopy.status = self.status
 
-        snakeCopy.head = Node(self.head.col,self.head.row)
+        snakeCopy.head = Node(self.head.row,self.head.col)
 
-        snakeCopy.food = Node(self.food.col,self.food.row)
+
+        snakeCopy.food = Node(self.food.row,self.food.col)
 
         snakeCopy.body =[snakeCopy.head]
 
         #lista del cuerpo sin la cabeza
         for node in self.body[1:]:
             
-            snakeCopy.body.append(Node(node.col,node.row))
+            snakeCopy.body.append(Node(node.row,node.col))
             
 
         return snakeCopy
+
+    def __nextNeighborh(self,fNode,sNode):
+
+        #si la cabeza esta mas a la derecha que el nodo a moverme, me muevo a la izquierda
+        if fNode.col > sNode.col:   return Snake.left
+        
+        #si la cabeza esta mas a la izquierda que el nodo, me muevo a la derecha
+        elif fNode.col < sNode.col:  return Snake.right
+
+        #si estoy mas abajo que el nodo, me muevo hacia arriba
+        elif fNode.row > sNode.row:    return Snake.up
+
+        #si la cabeza esta mas arriba que el nodo, me muevo hacia abajo
+        elif fNode.row < sNode.row:   return  Snake.down

@@ -9,13 +9,12 @@ class pathFinder():
 
     def __init__(self,grid,snake):
 
-        #capto una copia de la Matriz de nodos nuevesita
+        #capto el grid
         self.grid = grid
 
         #capto una copia de la serpiente
         self.snake = snake
     
-
 
     def dijkstra(self,initNode,finishNode):
         '''retorna (true,shortpath,visitInOrder) si encuentra un camino, retorna (false,None,visitInOrder) si no encuentra camino'''
@@ -55,6 +54,9 @@ class pathFinder():
 
                 #asigno el nodo previo como nodo_actual
                 currentNode = currentNode.previousNode
+            
+            #agrega la cabeza
+            shortPath.append(self.initNode)
 
             #retorna la ruta desde la cabeza hasta el final
             return (True,shortPath[::-1],self.visitedInOrder)
@@ -62,8 +64,6 @@ class pathFinder():
         # si dijkstra no encontro un camino 
         else:
             return (False,[],self.visitedInOrder)
-
-
 
 
     def __travelGrid(self):
@@ -136,4 +136,90 @@ class pathFinder():
         #devuelve una lista solo con los nodos que no han sido visitados
         return [neighbor for neighbor in neighbors if neighbor.visited == False]
         
+
+    def ExtendRute(self,path):
         
+        '''Extend the path with the grid and snake, eviting to touch his body or wall'''
+
+        path = path.copy()
+
+        count = 0
+
+        while count < len(path)-1:
+
+            node = path[count]
+            #nodo continuo
+            sNode = path[count+1]
+
+            #si estan en la misma fila 
+            if node.row == sNode.row:
+
+                #aumentar hacia arriba primero si aun existe una fila superior
+                if node.row-1 >= 0 :
+                    
+                    #verificar si existe ya en la ruta corta
+                    if self.__validExtend(path,node.row-1,node.col,sNode.row-1,sNode.col):
+
+                        path.insert(count+1,self.Matriz[node.row-1][node.col])
+                        path.insert(count+2,self.Matriz[sNode.row-1][sNode.col])
+
+
+                #moverme hacia abajo
+                if node.row+1 < self.grid.rows:
+
+                    if self.__validExtend(path,node.row+1,node.col,sNode.row+1,sNode.col):   
+
+                        path.insert(count+1,self.Matriz[node.row+1][node.col])
+                        path.insert(count+2,self.Matriz[sNode.row+1][sNode.col])
+
+
+            #si estan en la misma columna
+            elif node.col == sNode.col:
+
+                if node.col-1 >= 0:
+
+                    #evaluar si los dos nodos izquierdos estan libres
+                    if self.__validExtend(path,node.row,node.col-1,sNode.row,sNode.col-1):
+                            
+                        path.insert(count+1,self.Matriz[node.row][node.col-1])
+                        path.insert(count+2,self.Matriz[sNode.row][sNode.col-1])
+
+
+                if node.col+1 < self.grid.columns:
+
+                    if self.__validExtend(path,node.row,node.col+1,sNode.row,sNode.col+1):
+                    
+                        path.insert(count+1,self.Matriz[node.row][node.col+1])
+                        path.insert(count+2,self.Matriz[sNode.row][sNode.col+1])
+
+
+            count += 1
+
+
+        return path
+
+
+    def __validExtend(self,path,fRow,fCol,sRow,sCol):
+        '''return true if the nodes are valide for extend, else if not'''
+
+        body = [(node.row,node.col) for node in self.snake.body]
+
+        #si se encuentra en el cuerpo
+        if (fRow,fCol) in body or (sRow,sCol) in body:
+            return False
+
+        ruta = [(node.row,node.col) for node in path]
+
+        #si se encuentra en la ruta
+        if (fRow,fCol) in ruta or (sRow,sCol) in ruta:
+            return False
+
+        #asumiendo que el primer item del path es la cabeza y el ultimo item es la cola
+        tail = path[len(path)-1]
+
+        if (fRow,fCol) == (tail.row,tail.col) or (sRow,sCol) == (tail.row,tail.col):
+
+            return False
+
+
+        return True
